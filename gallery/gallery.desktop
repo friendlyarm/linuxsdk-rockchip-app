@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=gallery
-Name[zh_CN]=图库
-Exec=/usr/local/gallery/galleryView
-Icon=/usr/local/gallery/icon_gallery.png
-Type=Application

@@ -1,6 +1,0 @@
-    {
-        "app_name": "camera",
-        "app_icon": "icon_camera.png",
-        "app_file": "cameraView",
-	"i18n":"i18n.ini"
-    }

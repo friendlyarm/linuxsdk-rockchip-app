@@ -40,6 +40,7 @@ typedef struct _EptzInitInfo {
   INT32 eptz_fast_move_frame_judge;  //人物移动防抖阈值
   INT32 eptz_zoom_frame_judge;       //人物移动ZOOM防抖阈值
   INT32 eptz_zoom_speed;             //人脸跟踪ZOOM效果转换速度
+  INT32 eptz_animation;              //人物移动动画效果
 } EptzInitInfo;
 
 /*
@@ -103,5 +104,11 @@ void changeEptzConfig(char *config_path);
  * mode模式: 1：灵动模式，跟随灵敏。 2：会议模式，画面稳定。
  */
 void setEptzMode(INT32 mode);
+
+/*
+ * 说明：定制私有功能标志位
+ * parameter
+ */
+void setPrivateFlg(INT32 flag);
 
 #endif // EPTZ_ALGORITHM_H_

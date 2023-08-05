@@ -11,9 +11,9 @@
 #include <QThread>
 #include <QTimer>
 #include <QWidget>
-#ifdef RKDEVICEIO
-#include <DeviceIo/RkBtSource.h>
-#include <DeviceIo/RkBtBase.h>
+#ifdef RKWIFIBTAPP
+#include <RkBtSource.h>
+#include <RkBtBase.h>
 #else
 
 typedef enum {
@@ -73,7 +73,7 @@ public:
     static void bond_cb(const char *bd_addr, const char *name, RK_BT_BOND_STATE state);
     static void scan_status_cb(RK_BT_DISCOVERY_STATE status);
     static void source_connect_cb(void *userdata, const char *bd_addr, const char *name, const RK_BT_SOURCE_EVENT enEvent);
-    static void scan_cb(const char *address,const char *name, unsigned int bt_class, int rssi);
+    static void scan_cb(const char *address,const char *name, unsigned int bt_class, int rssi, int change);
     void open();
     void close();
     bool isOn();
@@ -84,7 +84,7 @@ public slots:
     void on_btnClicked();
     void on_itemClicked(QListWidgetItem *item);
 private:
-#ifdef RKDEVICEIO
+#ifdef RKWIFIBTAPP
     RkBtContent bt_content;
 #endif
     QList<struct bt_dev_info*> dev_list;

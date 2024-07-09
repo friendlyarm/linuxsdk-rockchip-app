@@ -1,185 +1,159 @@
 #include <lvgl/lvgl.h>
 
-#include "control_ui.h"
 #include "home_ui.h"
-#include "info_ui.h"
+#include "layout/tile_layout.h"
 #include "main.h"
-#include "music_ui.h"
+#include "smart_home_ui.h"
 #include "ui_resource.h"
 
-enum
-{
-    SUBMENU_MIN = 0,
-    SUBMENU_INFO = SUBMENU_MIN,
-    SUBMENU_CONTROL,
-    SUBMENU_MUSIC,
-    SUBMENU_MAX,
-    SUBMENU_DEFAULT = SUBMENU_INFO,
-};
+/* APPs */
+#include "app_aircond.h"
+#include "app_date.h"
+#include "app_music.h"
+#include "app_scene.h"
+#include "app_switch.h"
+#include "app_weather.h"
 
-struct submenu_s {
-    char *name;
-    void (*init)(lv_obj_t * parent);
-    void (*deinit)(void);
-    lv_obj_t * menu;
-};
+static lv_obj_t *main = NULL;
+static lv_obj_t *bg_pic;
+static lv_obj_t *btn_return;
+static lv_obj_t *tv;
+static lv_obj_t *tl;
+static lv_img_dsc_t *bg_snapshot;
 
-static lv_obj_t * ui_screen;
-static lv_obj_t * bg_pic;
-static lv_obj_t * btn_return;
-static lv_obj_t * label_menu;
-static lv_obj_t * area_submenu;
-
-static lv_img_dsc_t * bg_snapshot;
-
-static lv_style_t * style_cont;
-
-static lv_obj_t * sub_menu[SUBMENU_MAX];
-static struct submenu_s submenu_desc[SUBMENU_MAX];
-
-#define SUBMENU_COMMON_DEFINE(enum_t, name) \
-static void submenu_##name(lv_obj_t * parent)  \
-{   \
-    if (!submenu_desc[enum_t].menu)\
-        submenu_desc[enum_t].menu = menu_##name##_init(parent);\
-}   \
-static void submenu_##name##_destroy(void)  \
-{   \
-    if (submenu_desc[enum_t].menu)\
-        menu_##name##_deinit();\
+#define APP_PAD(hor, ver) {  \
+    .w = hor,  \
+    .h = ver,  \
 }
 
-SUBMENU_COMMON_DEFINE(SUBMENU_INFO, info)
-SUBMENU_COMMON_DEFINE(SUBMENU_CONTROL, control)
-SUBMENU_COMMON_DEFINE(SUBMENU_MUSIC, music)
-
-static struct submenu_s submenu_desc[SUBMENU_MAX] = {
-    {"首页",   submenu_info,    submenu_info_destroy,    NULL},
-    {"控制",   submenu_control, submenu_control_destroy, NULL},
-    {"播放器", submenu_music,   submenu_music_destroy,   NULL}
+static struct app_desc apps_desc[] =
+{
+    APP_DATE,
+    APP_WEATHER,
+    APP_SWITCH("客厅灯"),
+    APP_SWITCH("卧室灯"),
+    APP_SWITCH(NULL),
+    APP_SWITCH(NULL),
+    APP_SCENE,
+    APP_MUSIC,
+    APP_AIRCOND("客厅空调"),
+    APP_AIRCOND("卧室空调"),
 };
+static int apps = ARRAY_SIZE(apps_desc);
 
-static void bg_pic_snapshot_blur(void)
+static void btn_return_cb(lv_event_t *e)
 {
-    lv_draw_rect_dsc_t dsc;
-
-    bg_snapshot = lv_snapshot_take(bg_pic, LV_IMG_CF_TRUE_COLOR);
-
-    lv_obj_t * canvas = lv_canvas_create(NULL);
-    lv_area_t area;
-    lv_canvas_set_buffer(canvas, bg_snapshot->data,
-                         bg_snapshot->header.w,
-                         bg_snapshot->header.h,
-                         bg_snapshot->header.cf);
-    area.x1 = 0;
-    area.y1 = 0;
-    area.x2 = bg_snapshot->header.w - 1;
-    area.y2 = bg_snapshot->header.h - 1;
-    lv_canvas_blur_ver(canvas, &area, 100);
-    lv_canvas_blur_hor(canvas, &area, 100);
-    lv_draw_rect_dsc_init(&dsc);
-    dsc.bg_opa = 70;
-    dsc.bg_color = lv_color_black();
-    lv_canvas_draw_rect(canvas, 0, 0,
-                        bg_snapshot->header.w,
-                        bg_snapshot->header.h, &dsc);
-    lv_obj_del(canvas);
-}
-
-static void style_init(void)
-{
-    if (style_cont)
-        return;
-
-    style_cont = malloc(sizeof(style_cont));
-    lv_style_init(style_cont);
-    lv_style_set_text_font(style_cont, ttf_main_m.font);
-    lv_style_set_text_color(style_cont, lv_color_black());
-    lv_style_set_radius(style_cont, 10);
-    lv_style_set_pad_left(style_cont, 10);
-    lv_style_set_pad_right(style_cont, 10);
-    lv_style_set_pad_top(style_cont, 10);
-    lv_style_set_pad_bottom(style_cont, 10);
-}
-
-static void btn_drawed_cb(lv_event_t * e)
-{
-    switch (e->code) {
+    switch (e->code)
+    {
     case LV_EVENT_CLICKED:
         home_ui_init();
-        for (int i = SUBMENU_MIN; i < SUBMENU_MAX; i++)
+        for (int i = 0; i < apps; i++)
         {
-            if (submenu_desc[i].deinit)
-                submenu_desc[i].deinit();
-            submenu_desc[i].menu = NULL;
+            if (apps_desc[i].deinit)
+                apps_desc[i].deinit(apps_desc[i].userdata);
         }
-        lv_obj_del(ui_screen);
-        ui_screen = NULL;
-        label_menu = NULL;
-        lv_snapshot_free(bg_snapshot);
-        break;
-    case LV_EVENT_DRAW_POST_END:
-        if (!label_menu)
-            return;
-        lv_obj_align_to(label_menu, btn_return,
-                        LV_ALIGN_OUT_RIGHT_MID,
-                        5, 0);
+        lv_obj_del(main);
+        main = NULL;
         break;
     default:
         break;
     }
 }
 
-lv_img_dsc_t * smart_home_ui_bg_blur(void)
+static void scroll_cb(lv_event_t *event)
 {
-    return bg_snapshot;
+    for (int i = 0; i < apps; i++)
+    {
+        if (apps_desc[i].scroll_cb)
+            apps_desc[i].scroll_cb(event, apps_desc[i].userdata);
+    }
+}
+
+static void app_bg_update(lv_event_t *event)
+{
+    lv_img_t *obj;
+    lv_area_t area;
+    lv_coord_t x, y;
+
+    obj = (lv_img_t *)lv_event_get_target(event);
+    lv_obj_get_content_coords((lv_obj_t *)obj, &area);
+
+    x = -area.x1;
+    y = -area.y1;
+    x = x % obj->w;
+    obj->offset.x = x;
+    y = y % obj->h;
+    obj->offset.y = y;
+}
+
+static void init_app_bg(lv_obj_t *obj)
+{
+    lv_obj_t *app_bg;
+
+    lv_obj_set_style_pad_all(obj, 5, LV_PART_MAIN);
+
+    app_bg = lv_img_create(obj);
+    lv_obj_set_size(app_bg, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_radius(app_bg, 20, LV_PART_MAIN);
+    lv_obj_set_style_clip_corner(app_bg, 1, LV_PART_MAIN);
+    lv_img_set_src(app_bg, bg_snapshot);
+    lv_obj_add_event_cb(app_bg, app_bg_update, LV_EVENT_DRAW_MAIN_BEGIN, NULL);
 }
 
 void smart_home_ui_init(void)
 {
-    lv_obj_t * obj;
+    lv_obj_t *obj;
+    lv_obj_t *tl_item;
+    int cnt = 0;
+    int idx = 0;
 
-    style_init();
-
-    if (ui_screen)
-        goto load;
-
-    ui_screen = lv_obj_create(NULL);
-
-    lv_obj_clear_flag(ui_screen, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_img_opa(ui_screen, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    bg_pic = lv_img_create(ui_screen);
-    lv_obj_set_pos(bg_pic, 0, 0);
-    lv_img_set_src(bg_pic, BG_PIC_0);
-    bg_pic_snapshot_blur();
-
-    btn_return = lv_img_create(ui_screen);
-    lv_obj_set_pos(btn_return, 10, 10);
-    lv_img_set_src(btn_return, IMG_RETURN_BTN);
-    lv_obj_add_flag(btn_return, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(btn_return, btn_drawed_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_add_event_cb(btn_return, btn_drawed_cb, LV_EVENT_DRAW_POST_END, NULL);
-
-    label_menu = lv_label_create(ui_screen);
-    lv_label_set_text(label_menu, "智能家居");
-    lv_obj_set_style_text_color(label_menu, lv_color_white(), LV_PART_MAIN);
-    lv_obj_add_style(label_menu, &style_txt_m, LV_PART_MAIN);
-    lv_obj_align_to(label_menu, btn_return,
-                    LV_ALIGN_OUT_RIGHT_MID,
-                    5, 0);
-
-    area_submenu = lv_tileview_create(ui_screen);
-    lv_obj_remove_style_all(area_submenu);
-    lv_obj_set_size(area_submenu, lv_pct(100), lv_pct(90));
-    lv_obj_set_pos(area_submenu, 0, lv_pct(10));
-    for (int i = SUBMENU_MIN; i < SUBMENU_MAX; i++)
+    if (main)
     {
-        obj = lv_tileview_add_tile(area_submenu, i, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-        submenu_desc[i].init(obj);
+        lv_obj_clear_flag(main, LV_OBJ_FLAG_HIDDEN);
+        return;
     }
 
-load:
-    lv_disp_load_scr(ui_screen);
+    bg_snapshot = get_bg_snapshot();
+
+    main = lv_obj_create(lv_scr_act());
+    lv_obj_remove_style_all(main);
+    lv_obj_set_style_pad_all(main, 0, LV_PART_MAIN);
+    lv_obj_set_size(main, lv_pct(100), lv_pct(100));
+    lv_obj_refr_size(main);
+
+    btn_return = ui_return_btn_create(main, btn_return_cb, "智能家居");
+
+    tv = lv_tileview_create(main);
+    lv_obj_remove_style_all(tv);
+    lv_obj_set_size(tv, lv_pct(100), lv_pct(90));
+    lv_obj_set_pos(tv, 0, lv_pct(10));
+    lv_obj_add_event_cb(tv, scroll_cb, LV_EVENT_SCROLL, NULL);
+    lv_obj_refr_size(tv);
+
+    while (idx != apps)
+    {
+        printf("page %d\n", cnt);
+        obj = lv_tileview_add_tile(tv, cnt++, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+        lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
+
+        tl = tile_layout_create(obj, 0, 0, 200);
+
+        while (idx != apps)
+        {
+            tl_item = tile_layout_new_item(tl, apps_desc[idx].w,
+                                           apps_desc[idx].h,
+                                           !apps_desc[idx].init);
+            if (!tl_item)
+                break;
+            if (apps_desc[idx].init)
+            {
+                init_app_bg(tl_item);
+                apps_desc[idx].init(tl_item, apps_desc[idx].userdata);
+            }
+            printf("app %d/%d(%dx%d)\n", idx + 1, apps,
+                   apps_desc[idx].w, apps_desc[idx].h);
+            idx++;
+        }
+    }
 }
 

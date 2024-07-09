@@ -9,29 +9,45 @@
 #include "main.h"
 #include "ui_resource.h"
 
-static lv_obj_t * bg;
+static lv_obj_t *bg;
 
-static lv_obj_t * area_screen_timeout;
-static lv_obj_t * area_locked_screen;
-static lv_obj_t * area_wallpaper;
+static lv_obj_t *area_screen_timeout;
+static lv_obj_t *area_locked_screen;
+static lv_obj_t *area_wallpaper;
 
-static char *wallpapers[4] = {
+static char *wallpapers_thumb[4] =
+{
     WALLPAPER_0,
     WALLPAPER_1,
     WALLPAPER_2,
     WALLPAPER_3,
 };
 
-lv_obj_t * menu_wallpaper_init(lv_obj_t * parent)
+static char *wallpapers[4] =
 {
-    lv_obj_t * obj;
-    lv_obj_t * area_depart;
+    BG_PIC_0,
+    BG_PIC_1,
+    BG_PIC_2,
+    BG_PIC_3,
+};
+
+static void wallpaper_cb(lv_event_t *event)
+{
+    rk_demo_bg_set_img(lv_event_get_user_data(event));
+}
+
+lv_obj_t *menu_wallpaper_init(lv_obj_t *parent)
+{
+    lv_obj_t *obj;
+    lv_obj_t *area_depart;
 
     bg = lv_obj_create(parent);
     lv_obj_remove_style_all(bg);
+    lv_obj_set_style_pad_all(bg, 10, LV_PART_MAIN);
+    lv_obj_set_style_pad_gap(bg, 30, LV_PART_MAIN);
     lv_obj_set_size(bg, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(bg, LV_FLEX_FLOW_COLUMN);
-    lv_obj_center(bg);
+    lv_obj_align(bg, LV_ALIGN_TOP_MID, 0, 0);
 
     area_screen_timeout = lv_obj_create(bg);
     lv_obj_set_size(area_screen_timeout, lv_pct(100), LV_SIZE_CONTENT);
@@ -40,7 +56,8 @@ lv_obj_t * menu_wallpaper_init(lv_obj_t * parent)
     lv_obj_add_style(obj, &style_txt_m, LV_PART_MAIN);
     obj = lv_dropdown_create(area_screen_timeout);
     lv_obj_add_style(obj, &style_txt_s, LV_PART_MAIN);
-    lv_dropdown_set_options(obj, "60s\n120s\n5mins\nNever");
+    lv_obj_add_style(lv_dropdown_get_list(obj), &style_txt_s, LV_PART_MAIN);
+    lv_dropdown_set_options(obj, "60s\n120s\n5mins\n永不");
     lv_dropdown_set_selected(obj, 3);
     lv_obj_align(obj, LV_ALIGN_RIGHT_MID, 0, 0);
 
@@ -62,7 +79,7 @@ lv_obj_t * menu_wallpaper_init(lv_obj_t * parent)
     {
         obj = lv_img_create(area_depart);
         lv_obj_set_size(obj, 160, 120);
-        lv_img_set_src(obj, wallpapers[i]);
+        lv_img_set_src(obj, wallpapers_thumb[i]);
     }
 
     area_wallpaper = lv_obj_create(bg);
@@ -83,7 +100,9 @@ lv_obj_t * menu_wallpaper_init(lv_obj_t * parent)
     {
         obj = lv_img_create(area_depart);
         lv_obj_set_size(obj, 160, 120);
-        lv_img_set_src(obj, wallpapers[i]);
+        lv_img_set_src(obj, wallpapers_thumb[i]);
+        lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(obj, wallpaper_cb, LV_EVENT_CLICKED, wallpapers[i]);
     }
 
     return bg;

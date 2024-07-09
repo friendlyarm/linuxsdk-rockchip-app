@@ -9,16 +9,16 @@
 #include "main.h"
 #include "ui_resource.h"
 
-static lv_obj_t * bg;
+static lv_obj_t *bg;
 
-static lv_obj_t * area_tag;
-static lv_obj_t * area_info;
+static lv_obj_t *area_tag;
+static lv_obj_t *area_info;
 
-static lv_obj_t * cont_update;
-static lv_obj_t * btn_update_local;
-static lv_obj_t * btn_update_net;
+static lv_obj_t *cont_update;
+static lv_obj_t *btn_update_local;
+static lv_obj_t *btn_update_net;
 
-static void update_event_cb(lv_event_t * e)
+static void update_event_cb(lv_event_t *e)
 {
     if (lv_obj_has_flag(cont_update, LV_OBJ_FLAG_HIDDEN))
         lv_obj_clear_flag(cont_update, LV_OBJ_FLAG_HIDDEN);
@@ -27,19 +27,22 @@ static void update_event_cb(lv_event_t * e)
     lv_obj_align_to(cont_update, area_info, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 0);
 }
 
-lv_obj_t * menu_about_init(lv_obj_t * parent)
+lv_obj_t *menu_about_init(lv_obj_t *parent)
 {
-    lv_obj_t * obj;
+    lv_obj_t *obj;
 
     bg = lv_obj_create(parent);
+    lv_obj_remove_style_all(bg);
+    lv_obj_set_style_pad_all(bg, 10, LV_PART_MAIN);
+    lv_obj_set_style_pad_gap(bg, 30, LV_PART_MAIN);
     lv_obj_set_size(bg, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(bg, LV_FLEX_FLOW_ROW);
     lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_center(bg);
+    lv_obj_align(bg, LV_ALIGN_TOP_MID, 0, 0);
 
     area_tag = lv_obj_create(bg);
     lv_obj_remove_style_all(area_tag);
-    lv_obj_set_size(area_tag, lv_pct(50), LV_SIZE_CONTENT);
+    lv_obj_set_size(area_tag, lv_pct(40), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(area_tag, LV_FLEX_FLOW_COLUMN);
 
     area_info = lv_obj_create(bg);

@@ -35,14 +35,14 @@ extern "C" {
 /**
  * Initialize the evdev
  */
-void key_init(void);
+int key_init(void);
 
 /**
  * Get the current position and state of the evdev
  * @param data store the evdev data here
  * @return false: because the points are not buffered, so no more data to be read
  */
-void key_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
+void key_read(lv_indev_drv_t *drv, lv_indev_data_t *data);
 
 
 /**********************
